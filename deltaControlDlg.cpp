@@ -58,6 +58,11 @@ CdeltaControlDlg::CdeltaControlDlg(CWnd* pParent /*=nullptr*/)
 	, m_readX(_T(""))
 	, m_readY(_T(""))
 	, m_readZ(_T(""))
+	, m_strX(_T(""))
+	, m_strY(_T(""))
+	, m_strZ(_T(""))
+	, comport_state(false)
+	, m_comm(NULL)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -72,6 +77,12 @@ void CdeltaControlDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_READ_X, m_readX);
 	DDX_Text(pDX, IDC_EDIT_READ_Y, m_readY);
 	DDX_Text(pDX, IDC_EDIT_READ_Z, m_readZ);
+	DDX_Control(pDX, IDC_SLIDER_X, m_sliderX);
+	DDX_Text(pDX, IDC_EDIT_COORD_X, m_strX);
+	DDX_Control(pDX, IDC_SLIDER_Y, m_sliderY);
+	DDX_Control(pDX, IDC_SLIDER_Z, m_sliderZ);
+	DDX_Text(pDX, IDC_EDIT_COORD_Y, m_strY);
+	DDX_Text(pDX, IDC_EDIT_COORD_Z, m_strZ);
 }
 
 BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
@@ -88,6 +99,11 @@ BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_CONVEYOR_ON_R, &CdeltaControlDlg::OnBnClickedBtConveyorOnR)
 	ON_BN_CLICKED(IDC_BT_CONVEYOR_ON_L, &CdeltaControlDlg::OnBnClickedBtConveyorOnL)
 	ON_BN_CLICKED(IDC_BT_CONVEYOR_OFF, &CdeltaControlDlg::OnBnClickedBtConveyorOff)
+	ON_BN_CLICKED(IDC_BT_DEFAULT_POS, &CdeltaControlDlg::OnBnClickedBtDefaultPos)
+	ON_BN_CLICKED(IDC_BT_PICK, &CdeltaControlDlg::OnBnClickedBtPick)
+	ON_BN_CLICKED(IDC_BT_THROW, &CdeltaControlDlg::OnBnClickedBtThrow)
+	ON_WM_HSCROLL()
+	ON_BN_CLICKED(IDC_BT_MOVE, &CdeltaControlDlg::OnBnClickedBtMove)
 END_MESSAGE_MAP()
 
 
@@ -133,6 +149,7 @@ BOOL CdeltaControlDlg::OnInitDialog()
 	m_combo_comport_list.AddString(_T("COM8"));
 	m_combo_comport_list.AddString(_T("COM9"));
 	m_combo_comport_list.AddString(_T("COM10"));
+	m_combo_comport_list.AddString(_T("COM29"));
 
 	m_combo_baudrate_list.AddString(_T("9600"));
 	m_combo_baudrate_list.AddString(_T("19200"));
@@ -141,12 +158,16 @@ BOOL CdeltaControlDlg::OnInitDialog()
 
 	comport_state = false;
 	GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-	m_str_comport = _T("COM6");
+	m_str_comport = _T("COM29");
 	m_combo_baudrate = _T("115200");
 
-	CRect m_rectCurHist;
-	this->GetWindowRect(m_rectCurHist);
 
+	SliderInit(&m_sliderX);
+	SliderInit(&m_sliderY);
+	SliderInit(&m_sliderZ);
+	m_strX.Format(_T("%d"), 0);
+	m_strY.Format(_T("%d"), 0);
+	m_strZ.Format(_T("%d"), -260);
 
 
 
@@ -251,7 +272,7 @@ afx_msg LRESULT CdeltaControlDlg::OnReceive(WPARAM length, LPARAM lParam)
 	{
 		m_comm->Receive(data, length);	// Length 길이만큼 데이터 받음.
 
-		for (int i = 0; i < length; i++)
+		for (int i = 0; i < (int)length; i++)
 		{
 			rx.push_back(data[i]);
 		}
@@ -299,24 +320,11 @@ afx_msg LRESULT CdeltaControlDlg::OnReceive(WPARAM length, LPARAM lParam)
 
 		str = "";
 	}
-	delete data;
+	delete[] data;
 
 
 	return 0;
-		//data[length] = _T('\0');
-		//str += _T("\r\n");
-		//for (int i = 0; i < length; i++)
-		//{
-		//	str += data[i];
-		//}
-		//m_edit_rcv_view.ReplaceSel(str);
-		//str = "";
-		//m_edit_rcv_view.LineScroll(m_edit_rcv_view.GetLineCount());
-	//}
-	//delete data;
 
-
-	//return 0;
 }
 
 
@@ -336,16 +344,16 @@ void CdeltaControlDlg::OnBnClickedBtTorque()
 	
 	if (toggle) {
 		str = _T("DT1");
-		GetDlgItem(IDC_BT_TORQUE)->SetWindowText(_T("Torque OFF"));
+		GetDlgItem(IDC_BT_TORQUE)->SetWindowText(_T("TORQUE OFF"));
 	}
 	else {
 		str = _T("DT0");
-		GetDlgItem(IDC_BT_TORQUE)->SetWindowText(_T("Torque ON"));
+		GetDlgItem(IDC_BT_TORQUE)->SetWindowText(_T("TORQUE ON"));
 	}
 
 	toggle = ~toggle;
 
-	//str += _T("\n");
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
 }
 
@@ -359,13 +367,14 @@ void CdeltaControlDlg::OnBnClickedBtPump()
 
 	if (toggle) {
 		str = _T("DP1");
-		GetDlgItem(IDC_BT_PUMP)->SetWindowText(_T("Pump OFF"));
+		GetDlgItem(IDC_BT_PUMP)->SetWindowText(_T("PUMP OFF"));
 	}
 	else {
 		str = _T("DP0");
-		GetDlgItem(IDC_BT_PUMP)->SetWindowText(_T("Pump ON"));
+		GetDlgItem(IDC_BT_PUMP)->SetWindowText(_T("PUMP ON"));
 	}
 	
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
 }
 
@@ -384,6 +393,7 @@ void CdeltaControlDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 void CdeltaControlDlg::OnBnClickedBtRead()
 {
 	CString str = _T("DR");
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
 }
 
@@ -391,6 +401,7 @@ void CdeltaControlDlg::OnBnClickedBtRead()
 void CdeltaControlDlg::OnBnClickedBtConveyorOnR()
 {
 	CString str = _T("DC1R");
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
 }
 
@@ -398,6 +409,7 @@ void CdeltaControlDlg::OnBnClickedBtConveyorOnR()
 void CdeltaControlDlg::OnBnClickedBtConveyorOnL()
 {
 	CString str = _T("DC1L");
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
 }
 
@@ -405,5 +417,104 @@ void CdeltaControlDlg::OnBnClickedBtConveyorOnL()
 void CdeltaControlDlg::OnBnClickedBtConveyorOff()
 {
 	CString str = _T("DC0");
+	str += _T("\n");
 	m_comm->Send(str, str.GetLength());
+}
+
+
+void CdeltaControlDlg::OnBnClickedBtDefaultPos()
+{
+	CString str = _T("DO");
+	str += _T("\n");
+	m_comm->Send(str, str.GetLength());
+}
+
+
+void CdeltaControlDlg::OnBnClickedBtPick()
+{
+	CString str = _T("DA");
+	str += _T("\n");
+	m_comm->Send(str, str.GetLength());
+}
+
+
+void CdeltaControlDlg::OnBnClickedBtThrow()
+{
+	CString str = _T("DB");
+	str += _T("\n");
+	m_comm->Send(str, str.GetLength());
+}
+
+
+void CdeltaControlDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	//CSliderCtrl* pSlidCtrl = (CSliderCtrl*)GetDlgItem(IDC_SLIDER_X);
+	CSliderCtrl* pSlidCtrl = (CSliderCtrl*)pScrollBar;
+	if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_X) {
+		m_strX.Format(_T("%d"), pSlidCtrl->GetPos());
+	}
+	else if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_Y) {
+		m_strY.Format(_T("%d"), pSlidCtrl->GetPos());
+	}
+	else if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_Z) {
+		m_strZ.Format(_T("%d"), pSlidCtrl->GetPos());
+	}
+
+	UpdateData(FALSE);
+
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+
+	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
+}
+
+void CdeltaControlDlg::SliderInit(CSliderCtrl* slider)
+{
+	if (slider->GetDlgCtrlID() == IDC_SLIDER_X || slider->GetDlgCtrlID() == IDC_SLIDER_Y) {
+		slider->SetRange(-150, 150);
+		slider->SetPos(0);
+
+	}
+	else if (slider->GetDlgCtrlID() == IDC_SLIDER_Z) {
+		slider->SetRange(-380, -260);
+		slider->SetPos(-260);
+
+	}
+
+	slider->SetTicFreq(1);
+	slider->SetLineSize(10);
+
+}
+
+
+void CdeltaControlDlg::OnBnClickedBtMove()
+{
+	UpdateData(TRUE);
+
+	CString str = _T("DZ");
+	CString temp;
+	if (m_sliderX.GetPos() >= 0) {
+		str += _T("+");
+	}
+	else {
+		str += _T("-");
+	}
+	temp.Format(_T("%03d"), abs(m_sliderX.GetPos()));
+	str += temp;
+	if (m_sliderY.GetPos() >= 0) {
+		str += _T("+");
+	}
+	else {
+		str += _T("-");
+	}
+	temp.Format(_T("%03d"), abs(m_sliderY.GetPos()));
+	str += temp;
+
+	str += m_strZ;
+	
+	str += _T("\n");
+
+	m_comm->Send(str, str.GetLength());
+
+
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 }

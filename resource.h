@@ -19,6 +19,16 @@
 #define IDC_EDIT_READ_Z                 1010
 #define IDC_BT_CONVEYOR_ON_L            1011
 #define IDC_BT_CONVEYOR_OFF             1012
+#define IDC_BT_DEFAULT_POS              1013
+#define IDC_BT_PICK                     1014
+#define IDC_BT_THROW                    1015
+#define IDC_BT_MOVE                     1016
+#define IDC_SLIDER_X                    1018
+#define IDC_EDIT_COORD_X                1019
+#define IDC_SLIDER_Y                    1020
+#define IDC_EDIT_COORD_Y                1021
+#define IDC_SLIDER_Z                    1022
+#define IDC_EDIT_COORD_Z                1023
 
 // Next default values for new objects
 // 
@@ -26,7 +36,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1007
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

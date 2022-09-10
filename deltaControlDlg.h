@@ -63,4 +63,16 @@ public:
 	afx_msg void OnBnClickedBtConveyorOnR();
 	afx_msg void OnBnClickedBtConveyorOnL();
 	afx_msg void OnBnClickedBtConveyorOff();
+	afx_msg void OnBnClickedBtDefaultPos();
+	afx_msg void OnBnClickedBtPick();
+	afx_msg void OnBnClickedBtThrow();
+	void SliderInit(CSliderCtrl* slider);
+	CSliderCtrl m_sliderX;
+	CString m_strX;
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	CSliderCtrl m_sliderY;
+	CSliderCtrl m_sliderZ;
+	CString m_strY;
+	CString m_strZ;
+	afx_msg void OnBnClickedBtMove();
 };
