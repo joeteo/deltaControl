@@ -29,6 +29,16 @@
 #define IDC_EDIT_COORD_Y                1021
 #define IDC_SLIDER_Z                    1022
 #define IDC_EDIT_COORD_Z                1023
+#define IDC_LIST_MEMORY                 1025
+#define IDC_BUTTON_TO_RIGHT             1043
+#define IDC_BUTTON_TO_LEFT              1044
+#define IDC_BUTTON_RUN                  1045
+#define IDC_RADIO_MOVE                  1046
+#define IDC_RADIO_DELAY                 1047
+#define IDC_RADIO_PUMP                  1048
+#define IDC_EDIT_DELAY                  1049
+#define IDC_RADIO_PUMP_ON               1052
+#define IDC_RADIO_PUMP_OFF              1053
 
 // Next default values for new objects
 // 
@@ -36,7 +46,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1053
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

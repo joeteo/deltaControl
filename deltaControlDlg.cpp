@@ -63,6 +63,7 @@ CdeltaControlDlg::CdeltaControlDlg(CWnd* pParent /*=nullptr*/)
 	, m_strZ(_T(""))
 	, comport_state(false)
 	, m_comm(NULL)
+	, m_radio(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -83,6 +84,8 @@ void CdeltaControlDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_Z, m_sliderZ);
 	DDX_Text(pDX, IDC_EDIT_COORD_Y, m_strY);
 	DDX_Text(pDX, IDC_EDIT_COORD_Z, m_strZ);
+	DDX_Control(pDX, IDC_LIST_MEMORY, m_list);
+	DDX_Radio(pDX, IDC_RADIO_MOVE, m_radio);
 }
 
 BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
@@ -104,6 +107,7 @@ BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_THROW, &CdeltaControlDlg::OnBnClickedBtThrow)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_BT_MOVE, &CdeltaControlDlg::OnBnClickedBtMove)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_MOVE, IDC_RADIO_PUMP, &CdeltaControlDlg::OnBnClickedRadio)
 END_MESSAGE_MAP()
 
 
@@ -149,7 +153,7 @@ BOOL CdeltaControlDlg::OnInitDialog()
 	m_combo_comport_list.AddString(_T("COM8"));
 	m_combo_comport_list.AddString(_T("COM9"));
 	m_combo_comport_list.AddString(_T("COM10"));
-	m_combo_comport_list.AddString(_T("COM29"));
+	m_combo_comport_list.AddString(_T("COM19"));
 
 	m_combo_baudrate_list.AddString(_T("9600"));
 	m_combo_baudrate_list.AddString(_T("19200"));
@@ -158,9 +162,33 @@ BOOL CdeltaControlDlg::OnInitDialog()
 
 	comport_state = false;
 	GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-	m_str_comport = _T("COM29");
+	m_str_comport = _T("COM19");
 	m_combo_baudrate = _T("115200");
 
+	GetDlgItem(IDC_BT_TORQUE)->EnableWindow(false);
+	GetDlgItem(IDC_BT_PUMP)->EnableWindow(false);
+
+	GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(false);
+	GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(false);
+	GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(false);
+	GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(false);
+	GetDlgItem(IDC_BT_PICK)->EnableWindow(false);
+	GetDlgItem(IDC_BT_THROW)->EnableWindow(false);
+	GetDlgItem(IDC_BT_MOVE)->EnableWindow(false);
+	GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(false);
+
+	GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+
+	GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(true);
+	GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(true);
+	GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(true);
+	GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+	GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
+	GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
+
+	GetDlgItem(IDC_SLIDER_X)->EnableWindow(false);
+	GetDlgItem(IDC_SLIDER_Y)->EnableWindow(false);
+	GetDlgItem(IDC_SLIDER_Z)->EnableWindow(false);
 
 	SliderInit(&m_sliderX);
 	SliderInit(&m_sliderY);
@@ -168,6 +196,15 @@ BOOL CdeltaControlDlg::OnInitDialog()
 	m_strX.Format(_T("%d"), 0);
 	m_strY.Format(_T("%d"), 0);
 	m_strZ.Format(_T("%d"), -260);
+
+	m_list.SetExtendedStyle(
+		LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
+
+	m_list.InsertColumn(0, _T("No."), LVCFMT_CENTER, 40);
+	m_list.InsertColumn(1, _T("Action Type"), LVCFMT_CENTER, 160);
+	m_list.InsertColumn(2, _T("Attributes"), LVCFMT_CENTER, 304);
+
+	AfxGetMainWnd()->SetWindowText(_T("Delta Robot Motion Control v1.0.0 Created by Jo SooHyun"));
 
 
 
@@ -241,7 +278,25 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 			AfxMessageBox(_T("COM 포트닫힘"));
 			comport_state = false;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-			//GetDlgItem(IDC_BT_SEND)->EnableWindow(false);
+			GetDlgItem(IDC_BT_TORQUE)->EnableWindow(false);
+			GetDlgItem(IDC_BT_PUMP)->EnableWindow(false);
+
+			GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(false);
+			GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(false);
+			GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(false);
+			GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(false);
+			GetDlgItem(IDC_BT_PICK)->EnableWindow(false);
+			GetDlgItem(IDC_BT_THROW)->EnableWindow(false);
+			GetDlgItem(IDC_BT_MOVE)->EnableWindow(false);
+			GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(false);
+
+			
+			GetDlgItem(IDC_SLIDER_X)->EnableWindow(false);
+			GetDlgItem(IDC_SLIDER_Y)->EnableWindow(false);
+			GetDlgItem(IDC_SLIDER_Z)->EnableWindow(false);
+
+			GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+
 		}
 	}
 	else
@@ -252,7 +307,25 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 			AfxMessageBox(_T("COM 포트열림"));
 			comport_state = true;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("CLOSE"));
-			//GetDlgItem(IDC_BT_SEND)->EnableWindow(true);
+			GetDlgItem(IDC_BT_TORQUE)->EnableWindow(true);
+			GetDlgItem(IDC_BT_PUMP)->EnableWindow(true);
+
+			GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(true);
+			GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(true);
+			GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(true);
+			GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(true);
+			GetDlgItem(IDC_BT_PICK)->EnableWindow(true);
+			GetDlgItem(IDC_BT_THROW)->EnableWindow(true);
+			GetDlgItem(IDC_BT_MOVE)->EnableWindow(true);
+			GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(true);
+
+			GetDlgItem(IDC_SLIDER_X)->EnableWindow(true);
+			GetDlgItem(IDC_SLIDER_Y)->EnableWindow(true);
+			GetDlgItem(IDC_SLIDER_Z)->EnableWindow(true);
+
+			UpdateData(TRUE);
+			if (m_radio == 0) GetDlgItem(IDC_BT_READ)->EnableWindow(true);
+
 		}
 		else
 		{
@@ -279,46 +352,47 @@ afx_msg LRESULT CdeltaControlDlg::OnReceive(WPARAM length, LPARAM lParam)
 
 		while (rx.size() >= 14)
 		{
-			if (rx.at(0) == 'C')
+			if (rx.at(0) == 'Z' && rx.at(13) == '\n')
 			{
-				int tempValue = 0;
-				if (rx.at(1) == 'X')
-				{					
-					tempValue = (rx.at(2) - '0') * 100 + (rx.at(3) - '0') * 10 + (rx.at(4) - '0') * 1;
-					m_readX.Format(_T("%d"), tempValue);
-					UpdateData(false);
+				int tempX = 0;
+				tempX = (rx.at(2) - '0') * 100 + (rx.at(3) - '0') * 10 + (rx.at(4) - '0') * 1;
+				if (rx.at(1) == '-') {
+					tempX = -tempX;					
 				}
-				if (rx.at(5) == 'Y')
-				{
-					tempValue = (rx.at(6) - '0') * 100 + (rx.at(7) - '0') * 10 + (rx.at(8) - '0') * 1;
-					m_readY.Format(_T("%d"), tempValue);
-					UpdateData(false);
+				m_readX.Format(_T("%d"), tempX);
+
+				int tempY = 0;
+				tempY = (rx.at(6) - '0') * 100 + (rx.at(7) - '0') * 10 + (rx.at(8) - '0') * 1;
+				if (rx.at(5) == '-') {
+					tempY = -tempY;
 				}
-				if (rx.at(9) == 'Z')
-				{
-					tempValue = (rx.at(10) - '0') * 100 + (rx.at(11) - '0') * 10 + (rx.at(12) - '0') * 1;
-					m_readZ.Format(_T("%d"), tempValue);
-					UpdateData(false);
+				m_readY.Format(_T("%d"), tempY);
+
+				int tempZ = 0;
+				tempZ = (rx.at(10) - '0') * 100 + (rx.at(11) - '0') * 10 + (rx.at(12) - '0') * 1;
+				if (rx.at(9) == '-') {
+					tempZ = -tempZ;
 				}
+				m_readZ.Format(_T("%d"), tempZ);
+
+				UpdateData(false);
 
 				rx.erase(rx.begin(), rx.begin() + 13);
 
 			}
-			else if (rx.at(0) != 'C')
+			else if (rx.at(0) != 'Z')
 			{
 				rx.erase(rx.begin());
 
 			}
-			//else if (rx.at(14) != '\n')
-			//{
-			//	rx.erase(rx.begin(), rx.begin() + 13);
-			//}
+			else if (rx.at(13) != '\n')
+			{
+				rx.erase(rx.begin(), rx.begin() + 13);
+			}
 
 		}
 
-		UpdateData(false);
 
-		str = "";
 	}
 	delete[] data;
 
@@ -380,13 +454,11 @@ void CdeltaControlDlg::OnBnClickedBtPump()
 
 void CdeltaControlDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
-	lpMMI->ptMinTrackSize = CPoint(1200, 800);
-	lpMMI->ptMaxTrackSize = CPoint(1400, 1000);
+	lpMMI->ptMinTrackSize = CPoint(1100, 1100);
+	lpMMI->ptMaxTrackSize = CPoint(1500, 1500);
 
 	CDialogEx::OnGetMinMaxInfo(lpMMI);
 }
-
-
 
 
 
@@ -450,13 +522,13 @@ void CdeltaControlDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar
 {
 	//CSliderCtrl* pSlidCtrl = (CSliderCtrl*)GetDlgItem(IDC_SLIDER_X);
 	CSliderCtrl* pSlidCtrl = (CSliderCtrl*)pScrollBar;
-	if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_X) {
+	if (pSlidCtrl->GetDlgCtrlID() == IDC_SLIDER_X) {
 		m_strX.Format(_T("%d"), pSlidCtrl->GetPos());
 	}
-	else if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_Y) {
+	else if (pSlidCtrl->GetDlgCtrlID() == IDC_SLIDER_Y) {
 		m_strY.Format(_T("%d"), pSlidCtrl->GetPos());
 	}
-	else if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER_Z) {
+	else if (pSlidCtrl->GetDlgCtrlID() == IDC_SLIDER_Z) {
 		m_strZ.Format(_T("%d"), pSlidCtrl->GetPos());
 	}
 
@@ -470,7 +542,7 @@ void CdeltaControlDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar
 void CdeltaControlDlg::SliderInit(CSliderCtrl* slider)
 {
 	if (slider->GetDlgCtrlID() == IDC_SLIDER_X || slider->GetDlgCtrlID() == IDC_SLIDER_Y) {
-		slider->SetRange(-150, 150);
+		slider->SetRange(-100, 100);
 		slider->SetPos(0);
 
 	}
@@ -517,4 +589,42 @@ void CdeltaControlDlg::OnBnClickedBtMove()
 
 
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
+{
+	switch (id) 
+	{
+	case IDC_RADIO_MOVE :
+		GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(true);
+		GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(true);
+		GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(true);
+	
+		GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
+		GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
+
+		if (comport_state == TRUE) GetDlgItem(IDC_BT_READ)->EnableWindow(true);
+		break;
+	case IDC_RADIO_DELAY:
+		GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(true);
+		GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(false);
+		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
+		GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
+		break;
+	case IDC_RADIO_PUMP:
+		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(true);
+		GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(true);
+		GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(false);
+		GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+		break;
+	default:
+		break;
+	}
 }

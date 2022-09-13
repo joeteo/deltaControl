@@ -75,4 +75,7 @@ public:
 	CString m_strY;
 	CString m_strZ;
 	afx_msg void OnBnClickedBtMove();
+	CListCtrl m_list;
+	int m_radio;
+	afx_msg void OnBnClickedRadio(UINT id);
 };
