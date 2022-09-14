@@ -359,21 +359,29 @@ afx_msg LRESULT CdeltaControlDlg::OnReceive(WPARAM length, LPARAM lParam)
 				if (rx.at(1) == '-') {
 					tempX = -tempX;					
 				}
-				m_readX.Format(_T("%d"), tempX);
 
 				int tempY = 0;
 				tempY = (rx.at(6) - '0') * 100 + (rx.at(7) - '0') * 10 + (rx.at(8) - '0') * 1;
 				if (rx.at(5) == '-') {
 					tempY = -tempY;
 				}
-				m_readY.Format(_T("%d"), tempY);
 
 				int tempZ = 0;
 				tempZ = (rx.at(10) - '0') * 100 + (rx.at(11) - '0') * 10 + (rx.at(12) - '0') * 1;
 				if (rx.at(9) == '-') {
 					tempZ = -tempZ;
 				}
-				m_readZ.Format(_T("%d"), tempZ);
+
+				if (tempX != 999) {
+					m_readX.Format(_T("%d"), tempX);
+					m_readY.Format(_T("%d"), tempY);
+					m_readZ.Format(_T("%d"), tempZ);
+				}
+				else {
+					m_readX = _T("error");
+					m_readY = _T("error");
+					m_readZ = _T("error");
+				}
 
 				UpdateData(false);
 
