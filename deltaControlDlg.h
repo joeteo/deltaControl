@@ -90,7 +90,7 @@ public:
 	void renewListControl();
 
 	void pump(bool option);
-	void delay(int time);
+	void wait(int time);
 	void move(int x, int y, int z);
 
 	afx_msg void OnDestroy();
@@ -105,4 +105,10 @@ public:
 
 	int m_radio2;
 	afx_msg void OnBnClickedButtonStop();
+
+	void terminateThread();
+
+	int currentRow;
+
+	afx_msg void OnCustomdrawMyList(NMHDR* pNMHDR, LRESULT* pResult);
 };

@@ -68,6 +68,7 @@ CdeltaControlDlg::CdeltaControlDlg(CWnd* pParent /*=nullptr*/)
 	, m_pThread(NULL)
 	, m_radio2(0)
 	, m_threadStatus(THREAD_STOP)
+	, currentRow(-1)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -120,6 +121,7 @@ BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_RUN, &CdeltaControlDlg::OnBnClickedButtonRun)
 	ON_BN_CLICKED(IDC_BUTTON_SUSPEND, &CdeltaControlDlg::OnBnClickedButtonSuspend)
 	ON_BN_CLICKED(IDC_BUTTON_STOP, &CdeltaControlDlg::OnBnClickedButtonStop)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST_MEMORY, OnCustomdrawMyList)
 END_MESSAGE_MAP()
 
 
@@ -165,7 +167,6 @@ BOOL CdeltaControlDlg::OnInitDialog()
 	m_combo_comport_list.AddString(_T("COM8"));
 	m_combo_comport_list.AddString(_T("COM9"));
 	m_combo_comport_list.AddString(_T("COM10"));
-	m_combo_comport_list.AddString(_T("COM19"));
 
 	m_combo_baudrate_list.AddString(_T("9600"));
 	m_combo_baudrate_list.AddString(_T("19200"));
@@ -174,11 +175,15 @@ BOOL CdeltaControlDlg::OnInitDialog()
 
 	comport_state = false;
 	GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-	m_str_comport = _T("COM19");
+	m_str_comport = _T("COM29");
 	m_combo_baudrate = _T("115200");
 
 	EnableSerialRelatedControls(false);
 	GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+	GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+	GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
+	GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
+
 
 
 	SliderInit(&m_sliderX);
@@ -265,14 +270,21 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 	{
 		if (m_comm)        //컴포트가존재하면
 		{
+			if (m_pThread != NULL)
+			{
+				terminateThread();
+				AfxMessageBox(_T("Thread terminated."));
+			}
+
 			m_comm->Close();
 			m_comm = NULL;
-			AfxMessageBox(_T("COM 포트닫힘"));
+			AfxMessageBox(_T("COM Port Closed."));
 			comport_state = false;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
 
 			EnableSerialRelatedControls(FALSE);
 			GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+		
 
 		}
 	}
@@ -281,7 +293,7 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 		m_comm = new CSerialComm(_T("\\\\.\\") + m_str_comport, m_combo_baudrate, _T("None"), _T("8 Bit"), _T("1 Bit"));         // initial Comm port
 		if (m_comm->Create(GetSafeHwnd()) != 0) //통신포트를열고윈도우의핸들을넘긴다.
 		{
-			AfxMessageBox(_T("COM 포트열림"));
+			AfxMessageBox(_T("COM Port Opened"));
 			comport_state = true;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("CLOSE"));
 
@@ -381,6 +393,7 @@ afx_msg LRESULT CdeltaControlDlg::OnThreadClosed(WPARAM length, LPARAM lParam)
 
 	return 0;
 }
+
 
 
 void CdeltaControlDlg::OnBnClickedBtTorque()
@@ -578,7 +591,7 @@ afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
 
 		if (comport_state == TRUE) GetDlgItem(IDC_BT_READ)->EnableWindow(true);
 		break;
-	case IDC_RADIO_DELAY:
+	case IDC_RADIO_WAIT:
 		GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(true);
 		GetDlgItem(IDC_BT_READ)->EnableWindow(false);
 		GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(false);
@@ -615,7 +628,6 @@ void CdeltaControlDlg::renewListControl()
 		m_list.SetItem(i, 2, LVIF_TEXT, DC.getList().at(i)->getAttributes(), NULL, NULL, NULL, NULL);
 		
 	}
-	UpdateData(FALSE);
 }
 
 
@@ -636,6 +648,7 @@ void CdeltaControlDlg::EnableSerialRelatedControls(bool option)
 	GetDlgItem(IDC_BT_MOVE)->EnableWindow(option);
 	GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(option);
 	GetDlgItem(IDC_BUTTON_SUSPEND)->EnableWindow(option);
+	GetDlgItem(IDC_BUTTON_STOP)->EnableWindow(option);
 	
 }
 
@@ -659,12 +672,12 @@ void CdeltaControlDlg::pump(bool option)
 
 }
 
-void CdeltaControlDlg::delay(int time)
+void CdeltaControlDlg::wait(int time)
 {
 	CString str = _T("DW");
 
 	CString temp;
-	temp.Format(_T("%d"), time);
+	temp.Format(_T("%04d"), time);
 
 	str += temp;
 	str += _T("\n");
@@ -717,17 +730,7 @@ void CdeltaControlDlg::OnDestroy()
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	DC.SaveListToFile();
 
-	if (m_pThread != NULL)
-	{
-		pump(0);
-		m_pThread->SuspendThread();
-		DWORD dwResult;
-		GetExitCodeThread(m_pThread->m_hThread, &dwResult);
-
-		delete m_pThread;
-		m_pThread = NULL;
-		m_threadStatus = THREAD_STOP;
-	}
+	terminateThread();
 }
 
 
@@ -761,7 +764,7 @@ void CdeltaControlDlg::OnBnClickedButtonToRight()
 	case 1:
 		if (m_delay == _T(""))
 		{
-			AfxMessageBox(_T("Please input delay time."));
+			AfxMessageBox(_T("Please input wait time."));
 		}
 		else if (_ttoi(m_delay) < 0 || _ttoi(m_delay) > 5000)
 		{
@@ -769,7 +772,7 @@ void CdeltaControlDlg::OnBnClickedButtonToRight()
 		}
 		else
 		{
-			refList.insert(iter, (new DataRow(_T("DELAY"), m_delay)));
+			refList.insert(iter, (new DataRow(_T("WAIT"), m_delay)));
 		}
 		break;
 	case 2:
@@ -789,6 +792,7 @@ void CdeltaControlDlg::OnBnClickedButtonToRight()
 	}
 
 	renewListControl();
+	UpdateData(FALSE);
 
 }
 
@@ -803,7 +807,7 @@ void CdeltaControlDlg::OnBnClickedButtonToLeft()
 	DC.getList().erase(DC.getList().begin() + idx);
 
 	renewListControl();
-
+	UpdateData(FALSE);
 }
 
 
@@ -817,23 +821,37 @@ UINT ThreadRepeat(LPVOID LpData)
 	{
 		for (int i = 0; i < refList.size(); i++)
 		{
-			if (!refList.at(i)->getActionType().Compare(_T("MOVE"))) {
-			
-			} else if (!refList.at(i)->getActionType().Compare(_T("DELAY"))) {
+			pDlg->currentRow = i;
+			pDlg->renewListControl();
 
+			if (!refList.at(i)->getActionType().Compare(_T("MOVE")))
+			{
+				CString temp = refList.at(i)->getAttributes();
+				CString strX, strY, strZ;
+				AfxExtractSubString(strX, temp, 0, '/');
+				AfxExtractSubString(strY, temp, 1, '/');
+				AfxExtractSubString(strZ, temp, 2, '/');
+				pDlg->move(_ttoi(strX),_ttoi(strY),_ttoi(strZ));
+				Sleep(200);
 			}
-			else if (!refList.at(i)->getActionType().Compare(_T("PUMP"))) {
+			else if (!refList.at(i)->getActionType().Compare(_T("WAIT")))
+			{
+				int time = _ttoi(refList.at(i)->getAttributes());
+				pDlg->wait(time);
+				Sleep(time);
+			}
+			else if (!refList.at(i)->getActionType().Compare(_T("PUMP"))) 
+			{
 				if (!refList.at(i)->getAttributes().Compare(_T("ON")))
 				{
 					pDlg->pump(1);
-					Sleep(1000);
 				}
 				else if (!refList.at(i)->getAttributes().Compare(_T("OFF")))
 				{
 					pDlg->pump(0);
-					Sleep(1000);
 				}
-			}
+				Sleep(200);
+			}			
 		}
 	}
 
@@ -879,9 +897,15 @@ void CdeltaControlDlg::OnBnClickedButtonSuspend()
 
 void CdeltaControlDlg::OnBnClickedButtonStop()
 {
-	if (m_pThread != NULL) 
+	terminateThread();
+}
+
+void CdeltaControlDlg::terminateThread()
+{
+	if (m_pThread != NULL)
 	{
 		pump(0);
+		currentRow = -1;
 		m_pThread->SuspendThread();
 		DWORD dwResult;
 		GetExitCodeThread(m_pThread->m_hThread, &dwResult);
@@ -889,6 +913,61 @@ void CdeltaControlDlg::OnBnClickedButtonStop()
 		delete m_pThread;
 		m_pThread = NULL;
 		m_threadStatus = THREAD_STOP;
+		renewListControl();
 	}
 
+}
+
+
+void CdeltaControlDlg::OnCustomdrawMyList(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	NMLVCUSTOMDRAW* pLVCD = reinterpret_cast<NMLVCUSTOMDRAW*>(pNMHDR);
+
+	// Take the default processing unless we 
+	// set this to something else below.
+	*pResult = CDRF_DODEFAULT;
+
+	// First thing - check the draw stage. If it's the control's prepaint
+	// stage, then tell Windows we want messages for every item.
+
+	if (CDDS_PREPAINT == pLVCD->nmcd.dwDrawStage)
+	{
+		*pResult = CDRF_NOTIFYITEMDRAW;
+	}
+	else if (CDDS_ITEMPREPAINT == pLVCD->nmcd.dwDrawStage)
+	{
+			// This is the prepaint stage for an item. Here's where we set the
+			// item's text color. Our return value will tell Windows to draw the
+			// item itself, but it will use the new color we set here.
+			// We'll cycle the colors through red, green, and light blue.
+
+		COLORREF crText = RGB(0, 0, 0);
+		COLORREF crBkgnd = RGB(255, 255, 255);
+
+
+		if (m_list.GetItemText(pLVCD->nmcd.dwItemSpec, 1) == _T("WAIT")) 
+		{
+			crText = RGB(200, 0, 0);
+		}
+		else if (m_list.GetItemText(pLVCD->nmcd.dwItemSpec, 1) == _T("MOVE"))
+		{
+			crText = RGB(0, 200, 0);
+		}
+		else if (m_list.GetItemText(pLVCD->nmcd.dwItemSpec, 1) == _T("PUMP"))
+		{
+			crText = RGB(0, 0, 200);
+		}
+
+		if (pLVCD->nmcd.dwItemSpec == currentRow) 
+		{
+			crBkgnd = RGB(255, 255, 0);
+		}
+
+		// Store the color back in the NMLVCUSTOMDRAW struct.
+		pLVCD->clrText = crText;
+		pLVCD->clrTextBk = crBkgnd;
+
+		// Tell Windows to paint the control itself.
+		*pResult = CDRF_DODEFAULT;
+	}
 }

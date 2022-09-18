@@ -35,6 +35,7 @@
 #define IDC_BUTTON_RUN                  1045
 #define IDC_RADIO_MOVE                  1046
 #define IDC_RADIO_DELAY                 1047
+#define IDC_RADIO_WAIT                  1047
 #define IDC_RADIO_PUMP                  1048
 #define IDC_EDIT_DELAY                  1049
 #define IDC_BUTTON_SUSPEND              1050
