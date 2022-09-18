@@ -64,6 +64,10 @@ CdeltaControlDlg::CdeltaControlDlg(CWnd* pParent /*=nullptr*/)
 	, comport_state(false)
 	, m_comm(NULL)
 	, m_radio(0)
+	, m_delay(_T(""))
+	, m_pThread(NULL)
+	, m_radio2(0)
+	, m_threadStatus(THREAD_STOP)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -86,6 +90,8 @@ void CdeltaControlDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_COORD_Z, m_strZ);
 	DDX_Control(pDX, IDC_LIST_MEMORY, m_list);
 	DDX_Radio(pDX, IDC_RADIO_MOVE, m_radio);
+	DDX_Text(pDX, IDC_EDIT_DELAY, m_delay);
+	DDX_Radio(pDX, IDC_RADIO_PUMP_ON, m_radio2);
 }
 
 BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
@@ -108,6 +114,12 @@ BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_BT_MOVE, &CdeltaControlDlg::OnBnClickedBtMove)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_MOVE, IDC_RADIO_PUMP, &CdeltaControlDlg::OnBnClickedRadio)
+	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BUTTON_TO_RIGHT, &CdeltaControlDlg::OnBnClickedButtonToRight)
+	ON_BN_CLICKED(IDC_BUTTON_TO_LEFT, &CdeltaControlDlg::OnBnClickedButtonToLeft)
+	ON_BN_CLICKED(IDC_BUTTON_RUN, &CdeltaControlDlg::OnBnClickedButtonRun)
+	ON_BN_CLICKED(IDC_BUTTON_SUSPEND, &CdeltaControlDlg::OnBnClickedButtonSuspend)
+	ON_BN_CLICKED(IDC_BUTTON_STOP, &CdeltaControlDlg::OnBnClickedButtonStop)
 END_MESSAGE_MAP()
 
 
@@ -165,30 +177,9 @@ BOOL CdeltaControlDlg::OnInitDialog()
 	m_str_comport = _T("COM19");
 	m_combo_baudrate = _T("115200");
 
-	GetDlgItem(IDC_BT_TORQUE)->EnableWindow(false);
-	GetDlgItem(IDC_BT_PUMP)->EnableWindow(false);
-
-	GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(false);
-	GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(false);
-	GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(false);
-	GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(false);
-	GetDlgItem(IDC_BT_PICK)->EnableWindow(false);
-	GetDlgItem(IDC_BT_THROW)->EnableWindow(false);
-	GetDlgItem(IDC_BT_MOVE)->EnableWindow(false);
-	GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(false);
-
+	EnableSerialRelatedControls(false);
 	GetDlgItem(IDC_BT_READ)->EnableWindow(false);
 
-	GetDlgItem(IDC_EDIT_READ_X)->EnableWindow(true);
-	GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(true);
-	GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(true);
-	GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
-	GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
-	GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
-
-	GetDlgItem(IDC_SLIDER_X)->EnableWindow(false);
-	GetDlgItem(IDC_SLIDER_Y)->EnableWindow(false);
-	GetDlgItem(IDC_SLIDER_Z)->EnableWindow(false);
 
 	SliderInit(&m_sliderX);
 	SliderInit(&m_sliderY);
@@ -206,7 +197,8 @@ BOOL CdeltaControlDlg::OnInitDialog()
 
 	AfxGetMainWnd()->SetWindowText(_T("Delta Robot Motion Control v1.0.0 Created by Jo SooHyun"));
 
-
+	DC.loadListFromCSVFile();
+	renewListControl();
 
 	UpdateData(FALSE);
 
@@ -278,23 +270,8 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 			AfxMessageBox(_T("COM 포트닫힘"));
 			comport_state = false;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-			GetDlgItem(IDC_BT_TORQUE)->EnableWindow(false);
-			GetDlgItem(IDC_BT_PUMP)->EnableWindow(false);
 
-			GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(false);
-			GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(false);
-			GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(false);
-			GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(false);
-			GetDlgItem(IDC_BT_PICK)->EnableWindow(false);
-			GetDlgItem(IDC_BT_THROW)->EnableWindow(false);
-			GetDlgItem(IDC_BT_MOVE)->EnableWindow(false);
-			GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(false);
-
-			
-			GetDlgItem(IDC_SLIDER_X)->EnableWindow(false);
-			GetDlgItem(IDC_SLIDER_Y)->EnableWindow(false);
-			GetDlgItem(IDC_SLIDER_Z)->EnableWindow(false);
-
+			EnableSerialRelatedControls(FALSE);
 			GetDlgItem(IDC_BT_READ)->EnableWindow(false);
 
 		}
@@ -307,21 +284,8 @@ void CdeltaControlDlg::OnBnClickedBtConnect()
 			AfxMessageBox(_T("COM 포트열림"));
 			comport_state = true;
 			GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("CLOSE"));
-			GetDlgItem(IDC_BT_TORQUE)->EnableWindow(true);
-			GetDlgItem(IDC_BT_PUMP)->EnableWindow(true);
 
-			GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(true);
-			GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(true);
-			GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(true);
-			GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(true);
-			GetDlgItem(IDC_BT_PICK)->EnableWindow(true);
-			GetDlgItem(IDC_BT_THROW)->EnableWindow(true);
-			GetDlgItem(IDC_BT_MOVE)->EnableWindow(true);
-			GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(true);
-
-			GetDlgItem(IDC_SLIDER_X)->EnableWindow(true);
-			GetDlgItem(IDC_SLIDER_Y)->EnableWindow(true);
-			GetDlgItem(IDC_SLIDER_Z)->EnableWindow(true);
+			EnableSerialRelatedControls(true);
 
 			UpdateData(TRUE);
 			if (m_radio == 0) GetDlgItem(IDC_BT_READ)->EnableWindow(true);
@@ -462,8 +426,8 @@ void CdeltaControlDlg::OnBnClickedBtPump()
 
 void CdeltaControlDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
-	lpMMI->ptMinTrackSize = CPoint(1100, 1100);
-	lpMMI->ptMaxTrackSize = CPoint(1500, 1500);
+	lpMMI->ptMinTrackSize = CPoint(1500, 1100);
+	lpMMI->ptMaxTrackSize = CPoint(1800, 1400);
 
 	CDialogEx::OnGetMinMaxInfo(lpMMI);
 }
@@ -635,4 +599,296 @@ afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
 	default:
 		break;
 	}
+}
+
+
+
+void CdeltaControlDlg::renewListControl()
+{
+	m_list.DeleteAllItems();
+	for (int i = 0; i < (int)DC.getList().size(); i++)
+	{
+		CString temp;
+		temp.Format(_T("%d"), i + 1);
+		m_list.InsertItem(i, temp);
+		m_list.SetItem(i, 1, LVIF_TEXT, DC.getList().at(i)->getActionType(), NULL, NULL, NULL, NULL);
+		m_list.SetItem(i, 2, LVIF_TEXT, DC.getList().at(i)->getAttributes(), NULL, NULL, NULL, NULL);
+		
+	}
+	UpdateData(FALSE);
+}
+
+
+
+
+
+
+void CdeltaControlDlg::EnableSerialRelatedControls(bool option)
+{
+	GetDlgItem(IDC_BT_TORQUE)->EnableWindow(option);
+	GetDlgItem(IDC_BT_PUMP)->EnableWindow(option);
+	GetDlgItem(IDC_BT_CONVEYOR_ON_R)->EnableWindow(option);
+	GetDlgItem(IDC_BT_CONVEYOR_ON_L)->EnableWindow(option);
+	GetDlgItem(IDC_BT_CONVEYOR_OFF)->EnableWindow(option);
+	GetDlgItem(IDC_BT_DEFAULT_POS)->EnableWindow(option);
+	GetDlgItem(IDC_BT_PICK)->EnableWindow(option);
+	GetDlgItem(IDC_BT_THROW)->EnableWindow(option);
+	GetDlgItem(IDC_BT_MOVE)->EnableWindow(option);
+	GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(option);
+	GetDlgItem(IDC_BUTTON_SUSPEND)->EnableWindow(option);
+	
+}
+
+
+
+void CdeltaControlDlg::pump(bool option) 
+{
+	CString str = _T("DP");
+
+	if (option)
+	{
+		str += _T("1");
+	}
+	else
+	{
+		str += _T("0");
+	}
+
+	str += _T("\n");
+	m_comm->Send(str, str.GetLength());
+
+}
+
+void CdeltaControlDlg::delay(int time)
+{
+	CString str = _T("DW");
+
+	CString temp;
+	temp.Format(_T("%d"), time);
+
+	str += temp;
+	str += _T("\n");
+
+	m_comm->Send(str, str.GetLength());
+
+}
+
+void CdeltaControlDlg::move(int x, int y, int z)
+{
+
+	CString str = _T("DZ");
+	CString temp;
+	if (x >= 0) {
+		str += _T("+");
+	}
+	else {
+		str += _T("-");
+	}
+	temp.Format(_T("%03d"), abs(x));
+	str += temp;
+	if (y >= 0) {
+		str += _T("+");
+	}
+	else {
+		str += _T("-");
+	}
+	temp.Format(_T("%03d"), abs(y));
+	str += temp;
+
+	if (z >= 0) {
+		str += _T("+");
+	}
+	else {
+		str += _T("-");
+	}
+	temp.Format(_T("%03d"), abs(z));
+	str += temp;
+
+	str += _T("\n");
+
+	m_comm->Send(str, str.GetLength());
+
+}
+
+void CdeltaControlDlg::OnDestroy()
+{
+	CDialogEx::OnDestroy();
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	DC.SaveListToFile();
+
+	if (m_pThread != NULL)
+	{
+		pump(0);
+		m_pThread->SuspendThread();
+		DWORD dwResult;
+		GetExitCodeThread(m_pThread->m_hThread, &dwResult);
+
+		delete m_pThread;
+		m_pThread = NULL;
+		m_threadStatus = THREAD_STOP;
+	}
+}
+
+
+void CdeltaControlDlg::OnBnClickedButtonToRight()
+{
+	UpdateData(TRUE);
+	int idx = m_list.GetSelectionMark();
+	vector<DataRow*>::iterator iter;
+	vector<DataRow*>& refList = DC.getList();
+
+	if (idx == -1)
+	{
+		iter = refList.end();
+	}
+	else
+	{
+		iter = refList.begin() + idx + 1;
+	}
+
+	switch (m_radio) {
+	case 0:
+		if (m_readX == _T("") || m_readY == _T("") || m_readZ == _T(""))
+		{
+			AfxMessageBox(_T("Please input coordinates."));
+		}
+		else
+		{
+			refList.insert(iter, (new DataRow(_T("MOVE"), m_readX + _T("/") + m_readY + _T("/") + m_readZ)));
+		}
+		break;
+	case 1:
+		if (m_delay == _T(""))
+		{
+			AfxMessageBox(_T("Please input delay time."));
+		}
+		else if (_ttoi(m_delay) < 0 || _ttoi(m_delay) > 5000)
+		{
+			AfxMessageBox(_T("Please input time within the range."));
+		}
+		else
+		{
+			refList.insert(iter, (new DataRow(_T("DELAY"), m_delay)));
+		}
+		break;
+	case 2:
+		switch (m_radio2)
+		{
+		case 0:
+			refList.insert(iter, (new DataRow(_T("PUMP"), _T("ON"))));
+			break;
+		case 1:
+			refList.insert(iter, (new DataRow(_T("PUMP"), _T("OFF"))));
+			break;
+		default:
+			break;
+		}
+	default:
+		break;
+	}
+
+	renewListControl();
+
+}
+
+
+void CdeltaControlDlg::OnBnClickedButtonToLeft()
+{
+	int idx = m_list.GetSelectionMark();
+	vector<DataRow*>::iterator iter;
+
+	if (idx == -1) return;
+
+	DC.getList().erase(DC.getList().begin() + idx);
+
+	renewListControl();
+
+}
+
+
+UINT ThreadRepeat(LPVOID LpData)
+{
+
+	CdeltaControlDlg* pDlg = (CdeltaControlDlg*)(LpData);
+	vector<DataRow*>& refList = pDlg->DC.getList();
+
+	while (pDlg->m_threadStatus == THREAD_RUNNING)
+	{
+		for (int i = 0; i < refList.size(); i++)
+		{
+			if (!refList.at(i)->getActionType().Compare(_T("MOVE"))) {
+			
+			} else if (!refList.at(i)->getActionType().Compare(_T("DELAY"))) {
+
+			}
+			else if (!refList.at(i)->getActionType().Compare(_T("PUMP"))) {
+				if (!refList.at(i)->getAttributes().Compare(_T("ON")))
+				{
+					pDlg->pump(1);
+					Sleep(1000);
+				}
+				else if (!refList.at(i)->getAttributes().Compare(_T("OFF")))
+				{
+					pDlg->pump(0);
+					Sleep(1000);
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+void CdeltaControlDlg::OnBnClickedButtonRun()
+{
+
+	if (m_pThread == NULL) 
+	{		
+
+		m_pThread = AfxBeginThread(ThreadRepeat, (LPVOID)this);
+		if (m_pThread == NULL)
+		{
+			AfxMessageBox(_T("ERROR : Fail to begin thread."));
+		}
+		else 
+		{
+			m_pThread->m_bAutoDelete = FALSE;
+			m_threadStatus = THREAD_RUNNING;
+		}
+	}
+	else if (m_threadStatus == THREAD_PAUSE) 
+	{
+		m_pThread->ResumeThread();
+		m_threadStatus = THREAD_RUNNING;
+	}
+
+}
+
+
+void CdeltaControlDlg::OnBnClickedButtonSuspend()
+{
+	if (m_pThread != NULL) 
+	{
+		m_pThread->SuspendThread();
+		m_threadStatus = THREAD_PAUSE;
+	}
+	
+}
+
+
+void CdeltaControlDlg::OnBnClickedButtonStop()
+{
+	if (m_pThread != NULL) 
+	{
+		pump(0);
+		m_pThread->SuspendThread();
+		DWORD dwResult;
+		GetExitCodeThread(m_pThread->m_hThread, &dwResult);
+
+		delete m_pThread;
+		m_pThread = NULL;
+		m_threadStatus = THREAD_STOP;
+	}
+
 }

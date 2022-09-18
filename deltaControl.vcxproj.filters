@@ -39,6 +39,12 @@
     <ClInclude Include="SerialCom.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="DataController.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="DataRow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="deltaControl.cpp">
@@ -56,6 +62,12 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="DataController.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DataRow.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="deltaControl.rc">
@@ -64,6 +76,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\deltaControl.rc2">
+      <Filter>리소스 파일</Filter>
+    </None>
+    <None Include="actionData.csv">
       <Filter>리소스 파일</Filter>
     </None>
   </ItemGroup>

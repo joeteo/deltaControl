@@ -183,6 +183,8 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DataController.h" />
+    <ClInclude Include="DataRow.h" />
     <ClInclude Include="deltaControl.h" />
     <ClInclude Include="deltaControlDlg.h" />
     <ClInclude Include="framework.h" />
@@ -193,6 +195,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DataController.cpp" />
+    <ClCompile Include="DataRow.cpp" />
     <ClCompile Include="deltaControl.cpp" />
     <ClCompile Include="deltaControlDlg.cpp" />
     <ClCompile Include="pch.cpp">
@@ -208,6 +212,7 @@
     <ResourceCompile Include="deltaControl.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="actionData.csv" />
     <None Include="res\deltaControl.rc2" />
   </ItemGroup>
   <ItemGroup>

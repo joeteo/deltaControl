@@ -5,9 +5,14 @@
 #pragma once
 
 #include "SerialCom.h"	// 추가 for SerialCom
-#include <vector>
 
-using namespace std;
+#include "DataController.h"
+
+typedef enum {
+	THREAD_STOP,
+	THREAD_RUNNING,
+	THREAD_PAUSE
+}_ThreadStatus;
 
 // CdeltaControlDlg 대화 상자
 class CdeltaControlDlg : public CDialogEx
@@ -78,4 +83,26 @@ public:
 	CListCtrl m_list;
 	int m_radio;
 	afx_msg void OnBnClickedRadio(UINT id);
+
+
+	void EnableSerialRelatedControls(bool option);
+	DataController DC;
+	void renewListControl();
+
+	void pump(bool option);
+	void delay(int time);
+	void move(int x, int y, int z);
+
+	afx_msg void OnDestroy();
+	afx_msg void OnBnClickedButtonToRight();
+	afx_msg void OnBnClickedButtonToLeft();
+	afx_msg void OnBnClickedButtonRun();
+	afx_msg void OnBnClickedButtonSuspend();
+	CString m_delay;
+
+	CWinThread* m_pThread;
+	_ThreadStatus m_threadStatus;
+
+	int m_radio2;
+	afx_msg void OnBnClickedButtonStop();
 };
