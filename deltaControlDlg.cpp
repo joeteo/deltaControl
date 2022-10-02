@@ -63,12 +63,12 @@ CdeltaControlDlg::CdeltaControlDlg(CWnd* pParent /*=nullptr*/)
 	, m_strZ(_T(""))
 	, comport_state(false)
 	, m_comm(NULL)
-	, m_radio(0)
 	, m_delay(_T(""))
 	, m_pThread(NULL)
-	, m_radio2(0)
 	, m_threadStatus(THREAD_STOP)
 	, currentRow(-1)
+	, m_radio(0)
+	, m_radio2(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -90,9 +90,7 @@ void CdeltaControlDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_COORD_Y, m_strY);
 	DDX_Text(pDX, IDC_EDIT_COORD_Z, m_strZ);
 	DDX_Control(pDX, IDC_LIST_MEMORY, m_list);
-	DDX_Radio(pDX, IDC_RADIO_MOVE, m_radio);
 	DDX_Text(pDX, IDC_EDIT_DELAY, m_delay);
-	DDX_Radio(pDX, IDC_RADIO_PUMP_ON, m_radio2);
 }
 
 BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
@@ -115,6 +113,7 @@ BEGIN_MESSAGE_MAP(CdeltaControlDlg, CDialogEx)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_BT_MOVE, &CdeltaControlDlg::OnBnClickedBtMove)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_MOVE, IDC_RADIO_PUMP, &CdeltaControlDlg::OnBnClickedRadio)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_PUMP_ON, IDC_RADIO_PUMP_OFF, &CdeltaControlDlg::OnBnClickedRadio2)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON_TO_RIGHT, &CdeltaControlDlg::OnBnClickedButtonToRight)
 	ON_BN_CLICKED(IDC_BUTTON_TO_LEFT, &CdeltaControlDlg::OnBnClickedButtonToLeft)
@@ -589,6 +588,8 @@ afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
 		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
 		GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
 
+		m_radio = 0;
+
 		if (comport_state == TRUE) GetDlgItem(IDC_BT_READ)->EnableWindow(true);
 		break;
 	case IDC_RADIO_WAIT:
@@ -599,6 +600,8 @@ afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
 		GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(false);
 		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
 		GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
+
+		m_radio = 1;
 		break;
 	case IDC_RADIO_PUMP:
 		GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(true);
@@ -608,12 +611,29 @@ afx_msg void CdeltaControlDlg::OnBnClickedRadio(UINT id)
 		GetDlgItem(IDC_EDIT_READ_Y)->EnableWindow(false);
 		GetDlgItem(IDC_EDIT_READ_Z)->EnableWindow(false);
 		GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+
+		m_radio = 2;
 		break;
 	default:
 		break;
 	}
 }
 
+afx_msg void CdeltaControlDlg::OnBnClickedRadio2(UINT id)
+{
+	switch (id)
+	{
+	case IDC_RADIO_PUMP_ON:
+		m_radio2 = 0;
+
+		break;
+	case IDC_RADIO_PUMP_OFF:
+		m_radio2 = 1;
+		break;
+	default:
+		break;
+	}
+}
 
 
 void CdeltaControlDlg::renewListControl()
@@ -752,7 +772,7 @@ void CdeltaControlDlg::OnBnClickedButtonToRight()
 
 	switch (m_radio) {
 	case 0:
-		if (m_readX == _T("") || m_readY == _T("") || m_readZ == _T(""))
+		if (m_readX == _T("") || m_readX == _T("error"))
 		{
 			AfxMessageBox(_T("Please input coordinates."));
 		}

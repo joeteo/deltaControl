@@ -81,8 +81,9 @@ public:
 	CString m_strZ;
 	afx_msg void OnBnClickedBtMove();
 	CListCtrl m_list;
-	int m_radio;
+	
 	afx_msg void OnBnClickedRadio(UINT id);
+	afx_msg void OnBnClickedRadio2(UINT id);
 
 
 	void EnableSerialRelatedControls(bool option);
@@ -103,6 +104,7 @@ public:
 	CWinThread* m_pThread;
 	_ThreadStatus m_threadStatus;
 
+	int m_radio;
 	int m_radio2;
 	afx_msg void OnBnClickedButtonStop();
 
