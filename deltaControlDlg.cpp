@@ -174,12 +174,17 @@ BOOL CdeltaControlDlg::OnInitDialog()
 
 	comport_state = false;
 	GetDlgItem(IDC_BT_CONNECT)->SetWindowText(_T("OPEN"));
-	m_str_comport = _T("COM29");
+	m_str_comport = _T("COM19");
 	m_combo_baudrate = _T("115200");
 
 	EnableSerialRelatedControls(false);
-	GetDlgItem(IDC_BT_READ)->EnableWindow(false);
+
+	CButton* pCheck;
+	pCheck = (CButton*)GetDlgItem(IDC_RADIO_MOVE);
+	pCheck->SetCheck(TRUE);
+
 	GetDlgItem(IDC_EDIT_DELAY)->EnableWindow(false);
+	GetDlgItem(IDC_BT_READ)->EnableWindow(false);
 	GetDlgItem(IDC_RADIO_PUMP_ON)->EnableWindow(false);
 	GetDlgItem(IDC_RADIO_PUMP_OFF)->EnableWindow(false);
 
@@ -918,18 +923,20 @@ void CdeltaControlDlg::OnBnClickedButtonSuspend()
 void CdeltaControlDlg::OnBnClickedButtonStop()
 {
 	terminateThread();
+	Sleep(3000);
+	pump(0);
+	move(0, 0, -260);
 }
 
 void CdeltaControlDlg::terminateThread()
 {
 	if (m_pThread != NULL)
 	{
-		pump(0);
+
 		currentRow = -1;
 		m_pThread->SuspendThread();
 		DWORD dwResult;
 		GetExitCodeThread(m_pThread->m_hThread, &dwResult);
-
 		delete m_pThread;
 		m_pThread = NULL;
 		m_threadStatus = THREAD_STOP;
